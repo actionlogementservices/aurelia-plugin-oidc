@@ -1,170 +1,357 @@
-# `@actionlogementservices/aurelia-plugin-base`
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm package](https://img.shields.io/npm/v/%40als%2Faurelia-plugin-oidc)](https://www.npmjs.com/package/@actionlogementservices/aurelia-plugin-oidc)
+![Coverage Badge](https://img.shields.io/badge/Coverage-100%25-green.svg)
 
-This project is bootstrapped by [aurelia-cli](https://github.com/aurelia/cli).
+# @actionlogementservices/aurelia-plugin-oidc
 
-This Aurelia plugin project has a built-in dev app (with CLI built-in bundler and RequireJS) to simplify development.
+An Aurelia plugin based on the library [oidc-client-ts](https://github.com/authts/oidc-client-ts) and replacement for the previous and now archived [aurelia-kis-oidc](https://github.com/kisssdev/aurelia-kis-oidc) repository. 
 
-1. The local `src/` folder, is the source code for the plugin.
-2. The local `dev-app/` folder, is the code for the dev app, just like a normal app bootstrapped by aurelia-cli.
-3. You can use normal `au run` and `au test` in development just like developing an app.
-4. You can use aurelia-testing to test your plugin, just like developing an app.
-5. To ensure compatibility to other apps, always use `PLATFORM.moduleName()` wrapper in files inside `src/`. You don't need to use the wrapper in `dev-app/` folder as CLI built-in bundler supports module name without the wrapper.
+It adapts the **[OpenID Connect Authorization Code flow with PKCE](https://github.com/authts/oidc-client-ts/blob/main/docs/protocols/authorization-code-grant-with-pkce.md)** to the Aurelia router in a 'keep it simple' way. Note that support of **Implicit flow has been dropped** in oidc-client-ts. If you rely on this particular flow you need to keep using the aurelia-kis-oidc plugin. Otherwise see the **[Migration from aurelia-kis-oidc](#Migration-from-aurelia-kis-oidc)** guide to adapt your code.
 
-Note aurelia-cli doesn't provide a plugin skeleton with Webpack setup (not yet), but this plugin can be consumed by any app using Webpack, or CLI built-in bundler, or jspm.
+The plugin is fully [documented](./doc/toc.md) and fully tested.
 
-## How to write an Aurelia plugin
 
-For a full length tutorial, visit [Aurelia plugin guide](https://aurelia-1.gitbook.io/v1-docs/developer-guides/building-plugins).
+## Description
 
-Here is some basics. You can create new custom element, custom attribute, value converter or binding behavior manually, or use command `au generate` to help.
-```shell
-au generate element some-name
-au generate attribute some-name
-au generate value-converter some-name
-au generate binding-behavior some-name
-```
+- After a successful login to the OpenID provider, the access token is automatically attached to the http client, so that further calls to an OAuth2 protected web api will be authenticated.
 
-By default, the cli generates command generates files in following folders:
-```
-src/elements
-src/attributes
-src/value-converters
-src/binding-behaviors
-```
+- When a web api call is made, the plugin will check the access token validity. If the token has expired, the plugin will try to sign in the user silently in order to get a new access token.
 
-Note the folder structure is only to help you organising the files, it's not a requirement of Aurelia. You can manually create new element (or other thing) anywhere in `src/`.
+- If the user has a valid browser session to the OpenID provider, a new access token is retrieved, and the web api is called transparently.
 
-After you added some new file, you need to register it in `src/index.js`. Like this:
-```js
-config.globalResources([
-  // ...
-  PLATFORM.moduleName('./path/to/new-file-without-ext')
-]);
-````
+- If the silent login is not possible the user is prompted to login to the OpenID provider.
 
-The usage of `PLATFORM.moduleName` wrapper is mandatory. It's needed for your plugin to be consumed by any app using webpack, CLI built-in bundler, or jspm.
+- After the successful login, the user is redirected to his original page.
 
-## Resource import within the dev app
+## Migration from aurelia-kis-oidc
 
-In dev app, when you need to import something from the inner plugin (for example, importing a class for dependency injection), use special name `"resources"` to reference the inner plugin.
+- The configuration of the plugin must be changed from
 
-```js
-import {inject} from 'aurelia-framework';
-// "resources" refers the inner plugin src/index.js
-import {MyService} from 'resources';
-
-@inject(MyService)
-export class App {
-  constructor(myService) {
-    this.myService = myService;
+  ```javascript
+  function configureOpenidPlugin(aurelia) {
+    Log.level = 1;       // define the log level : 4: DEBUG, 3: INFO, 2: WARN, 1: ERROR, 0: NONE
+    Log.logger = logger; // set the logger
+    return {
+      userIdClaimSelector: profile => profile.emails[0],
+      reconnectPrompt: loginFunc =>
+        iziToast.show({
+          title: 'Session expired',
+          message: 'Please reconnect',
+          buttons: [[`<button>Reconnect</button>`, (instance, toast) => loginFunc(), true]]
+        }),
+      userManagerSettings: {
+        // your oidc-client-js configuration
+        ...
+        stateStore: new WebStorageStateStore({
+          store: globalThis.sessionStorage
+        }),
+        userStore: new WebStorageStateStore({
+          store: globalThis.sessionStorage
+        })
+      }
+    }
   }
+  ```
+
+  to
+
+  ```javascript
+  function configureOpenidPlugin(aurelia) {
+    const logger = LogManager.getLogger('aurelia-plugin-oidc');
+    const pluginConfiguration = new PluginConfiguration({
+      userIdClaimSelector: profile => profile.emails[0],
+      reconnectPrompt: loginFunc =>
+        iziToast.show({
+          title: 'Session expired',
+          message: 'Please reconnect',
+          buttons: [[`<button>Reconnect</button>`, (instance, toast) => loginFunc(), true]]
+        }),
+      userManagerSettings: {
+        // your oidc-client-js configuration
+        ...
+      }
+    });
+    pluginConfiguration
+      .setLogLevel(1)    // define the log level : 4: DEBUG, 3: INFO, 2: WARN, 1: ERROR, 0: NONE
+      .setLogger(logger) // set the logger
+      .setStorage(globalThis.sessionStorage); // set the user and state store of the userManagerSettings
+  }
+  ```
+
+## Features
+
+- This plugin registers dynamically two routes (__signin-oidc__ and __signout-oidc__) within your application in order to implement the OpenID Connect Implicit Client protocol.
+
+- It implements an **http interceptor** that deals with silent login and bearer token.
+
+- It is possible to redirect the application on a specific route based on the presence of a **specific claim** in the user profile (See the __redirectsOnClaim__ configuration property).
+
+- There is a **simulation mode** that connect/disconnect the user without interacting with the OpenID provider (See the __simulation__ and __simulationUser__ configuration properties).
+
+## Installation
+
+1. **Install** the plugin:
+
+    ```node
+    npm install @actionlogementservices/aurelia-plugin-oidc
+    ```
+
+1. **Register** the plugin in aurelia:
+
+    ```javascript
+    // in your main.js or main.ts
+    export function configure(aurelia) {
+      aurelia.use
+        .standardConfiguration()
+        .plugin(PLATFORM.moduleName('@actionlogementservices/aurelia-plugin-oidc'), () => configureOpenidPlugin(aurelia))
+    ```
+
+1. **Configure** the plugin:
+
+    ```javascript
+    function configureOpenidPlugin(aurelia) {
+      const logger = LogManager.getLogger('aurelia-plugin-oidc');
+      const pluginConfiguration = new PluginConfiguration({
+        userIdClaimSelector: profile => profile.emails[0],
+        reconnectPrompt: loginFunc =>
+          iziToast.show({
+            title: 'Session expired',
+            message: 'Please reconnect',
+            buttons: [[`<button>Reconnect</button>`, (instance, toast) => loginFunc(), true]]
+          }),
+        userManagerSettings: {
+          // your oidc-client-js configuration
+          ...
+        }
+      });
+      pluginConfiguration
+        .setLogLevel(1)    // define the log level : 4: DEBUG, 3: INFO, 2: WARN, 1: ERROR, 0: NONE
+        .setLogger(logger) // set the logger
+        .setStorage(globalThis.sessionStorage); // set the user and state store of the userManagerSettings
+    }
+    ```
+
+1. Connect the router and the httpclient with the plugin:
+
+    ```javascript
+    // in your app.js or app.ts
+    import { inject } from 'aurelia-framework';
+    import { HttpClient } from 'aurelia-fetch-client';
+    import { OpenidRouting, Oauth2Interceptor } from '@actionlogementservices/aurelia-plugin-oidc';
+
+    @inject(OpenidRouting, HttpClient, Oauth2Interceptor)
+    export class App {
+
+      constructor(openidRouting, client, authInterceptor) {
+        this.openidRouting = openidRouting;
+        this.configureHttpClient(client, authInterceptor);
+      }
+
+      configureRouter(configuration, router) {
+        ...
+        // required
+        configuration.options.pushState = true;
+        // add dynamically routes for OpenID Connect
+        this.openidRouting.configureRouter(configuration);
+        ...
+      }
+
+      configureHttpClient(client, authInterceptor) {
+        return client.configure(config => {
+          config
+            .withDefaults({
+              headers: {
+                'Access-Control-Allow-Credentials': 'true',
+                'Accept': 'application/json'
+              },
+              credentials: 'include',
+              mode: 'cors'
+            })
+            .rejectErrorResponses()
+            .withInterceptor(authInterceptor)
+        });
+      }
+    ```
+
+## User interface
+
+This plugin does not come with any user interface element but it provides a [Connection](./doc/src_connection.md) class that encapsulates the OpenID Connect user connection. Just inject the Connection class within your viewmodel and bind your html elements to it.
+
+```javascript
+//login.js
+import { inject } from 'aurelia-framework';
+import { Connection } from '@actionlogementservices/aurelia-plugin-oidc';
+
+@inject(Connection)
+export class Login {
+  constructor(connection) {
+    this.connection = connection;
+  }
+```
+
+```html
+<!-- login.html -->
+<template>
+  <!-- a login button -->
+  <button click.trigger="connection.loginUser()">
+    Login
+  </button>
+  <!-- a conditional lougout link with user name -->
+  <a if.bind="connection.isUserLoggedIn" click.trigger="connection.logoutUser()">
+    Logout ${connection.userId}
+  </a>
+</template>
+```
+
+You can change the claim that is used to represent the identifier of the user (property userId): see the __userIdClaimSelector__ configuration property.
+
+You can also change the user prompt interface when the session has expired: see the __reconnectPrompt__ configuration property.
+
+## Configuration options
+
+You can define specific options in the configuration returned by the __configureOpenidPlugin__ function.
+
+### `userIdClaimSelector`
+
+Function that defines the profile claim used as user identifier.
+
+_Example:_
+
+ ```javascript
+ /**
+ * Defines the profile claim used as user identifier.
+ * @param {Object} profile - the user profile containing claims
+ * @return {string} the user identifier
+ */
+const userIdClaimSelector = profile => profile.emails[0];
+ ```
+
+If you do not define this option, the default claim used is the __name__ claim.
+
+### `reconnectPrompt`
+
+_Function that defines the user prompt to reconnect the session when it is expired._
+
+By default, it displays the native browser prompt.
+
+_Here's an example with the [iziToast](https://github.com/marcelodolza/iziToast) component:_
+
+ ```javascript
+/**
+ * Implements the reconnect prompt with izitoast component.
+ * @param {I18N} i18n -  the translation plugin
+ * @return {function} the function called to reconnect the session
+ */
+const reconnectPrompt = loginFunc => {
+  iziToast.show({
+    theme: 'dark',
+    title: 'Session expired!',
+    message: 'Please reconnect...',
+    buttons: [[`<button>Reconnect</button>`, (instance, toast) => loginFunc(), true]]
+  });
+};
+```
+
+### `loginRequiredSelector`
+
+To determine that the silent login is not possible the OpenID provider will return an error. The plugin must handle the correct error code in order to show the reconnect prompt. The __loginRequiredSelector__ function defines this code analysis.
+The default function is the following (which is what Microsoft Azure B2C authentication currently returns when silent login is no more available):
+
+```javascript
+error => error.error === 'interaction_required';
+```
+
+You can customize it. For instance this is the function I use for an application authenticated by Azure Active Directory (and it should be the same for Azure B2B authentication):
+
+```javascript
+error => error.error === 'login_required';
+```
+
+### `redirectsOnClaim`
+
+Sometimes you want to redirect the router to a specific route after the login when a special claim is present.
+
+For instance, with __Azure B2C__ there is a special claim when the user has just created his account.
+
+You can use the __redirectsOnClaim__ function for that.
+
+_Example:_
+
+ ```javascript
+ /**
+ * Defines the redirect route based on specific profile claims.
+ * @param {Object} profile - the user profile containing claims
+ * @return {string} the route name or undefined
+ */
+ const redirectsOnClaim = profile => {
+   // redirect newly created users to the settings view
+   if (profile?.newUser) return 'settings';
+ };
+ ```
+
+### `onError`
+
+Sometimes the oicd provider may return an error during the response callback.
+
+You can use the __onError__ callback to retrieve the error.
+
+_Example:_
+
+ ```javascript
+ const onError = error => {
+   // for instance for errors returned by Azure AD
+   console.log(error.error_description);
+ };
+ ```
+
+### `userManagerSettings`
+
+This object is the exact configuration object of the openid-client-ts library.
+
+See [oidc-client-ts documentation](https://github.com/authts/oidc-client-ts/blob/main/docs/index.md).
+
+The __redirect_uri__ must be:
+`https://whatever_your_aurelia_app_url/signin-oidc`
+
+If you specify __post_logout_redirect_uri__ it should be:
+`https://whatever_your_aurelia_app_url/signout-oidc`
+
+### `simulation`
+
+This boolean is for __development__ purpose only. It enables to bypass the OpenID provider dialog and to connect virtually the user.
+
+When you call the `loginUser` method of the [Connection](doc/src_connection.md) class the user is automatically connected as the default following user:
+
+```javascript
+{
+  profile: { name: 'Test User' },
+  expired: false,
+  access_token: '0123456789'
 }
 ```
 
-## Manage dependencies
+You can define your own user object: see the __simulationUser__ configuration property.
 
-By default, this plugin has no "dependencies" in package.json. Theoretically this plugin depends on at least `aurelia-pal` because `src/index.js` imports it. It could also depends on more core Aurelia package like `aurelia-binding` or `aurelia-templating` if you build advanced components that reference them.
+When you call `logoutUser` of the [Connection](doc/src_connection.md) class the user is automatically disconnected.
 
-Ideally you need to carefully add those `aurelia-pal` (`aurelia-binding`...) to "dependencies" in package.json. But in practice you don't have to. Because every app that consumes this plugin will have full Aurelia core packages installed.
+Of course as the access token is fake you won't be able to call a protected web api.
 
-Furthermore, there are two benefits by leaving those dependencies out of plugin's package.json.
-1. ensure this plugin doesn't bring in a duplicated Aurelia core package to consumers' app. This is mainly for app built with webpack. We had been hit with `aurelia-binding` v1 and v2 conflicts due to 3rd party plugin asks for `aurelia-binding` v1.
-2. reduce the burden for npm/yarn when installing this plugin.
+### `simulationUser`
 
-If you are a perfectionist who could not stand leaving out dependencies, I recommend you to add `aurelia-pal` (`aurelia-binding`...) to "peerDependencies" in package.json. So at least it could not cause a duplicated Aurelia core package.
+This object enables you to define a custom connected user that should fit your needs.
 
-If your plugin depends on other npm package, like `lodash` or `jquery`, **you have to add them to "dependencies" in package.json**.
+_Example:_
 
-## Build Plugin
-
-Run `au build-plugin`. This will transpile all files from `src/` folder to `dist/native-modules/` and `dist/commonjs/`.
-
-For example, `src/index.js` will become `dist/native-modules/index.js` and `dist/commonjs/index.js`.
-
-Note all other files in `dev-app/` folder are for the dev app, they would not appear in the published npm package.
-
-## Consume Plugin
-
-By default, the `dist/` folder is not committed to git. (We have `/dist` in `.gitignore`). But that would not prevent you from consuming this plugin through direct git reference.
-
-You can consume this plugin directly by:
-```shell
-npm i github:actionlogementservices/aurelia-plugin-base
-# or if you use bitbucket
-npm i bitbucket:actionlogementservices/aurelia-plugin-base
-# or if you use gitlab
-npm i gitlab:actionlogementservices/aurelia-plugin-base
-# or plain url
-npm i https:/github.com/actionlogementservices/aurelia-plugin-base.git
+```javascript
+simulationUser: {
+      profile: { name: 'J.DOE', emails: ['john.doe@sample.com']},
+      expired: false,
+      access_token: '0123456789'
+    },
 ```
 
-Then load the plugin in app's `main.js` like this.
-```js
-aurelia.use.plugin('@actionlogementservices/aurelia-plugin-base');
-// for webpack user, use PLATFORM.moduleName wrapper
-aurelia.use.plugin(PLATFORM.moduleName('@actionlogementservices/aurelia-plugin-base'));
-```
+## Project documentation
 
-The missing `dist/` files will be filled up by npm through `"prepare": "npm run build"` (in `"scripts"` section of package.json).
+The project documentation has been generated with jsdoc and the [kis-jsdoc-plugin](https://github.com/kisssdev/kis-jsdoc-plugin).
 
-Yarn has a [bug](https://github.com/yarnpkg/yarn/issues/5235) that ignores `"prepare"` script. If you want to use yarn to consume your plugin through direct git reference, remove `/dist` from `.gitignore` and commit all the files. Note you don't need to commit `dist/` files if you only use yarn to consume this plugin through published npm package (`npm i @actionlogementservices/aurelia-plugin-base`).
-
-## Publish npm package
-
-By default, `"private"` field in package.json has been turned on, this prevents you from accidentally publish a private plugin to npm.
-
-To publish the plugin to npm for public consumption:
-
-1. Remove `"private": true,` from package.json.
-2. Pump up project version. This will run through `au test` (in "preversion" in package.json) first.
-```shell
-npm version patch # or minor or major
-```
-3. Push up changes to your git server
-```shell
-git push && git push --tags
-```
-4. Then publish to npm, you need to have your npm account logged in.
-```shell
-npm publish
-```
-
-## Automate changelog, git push, and npm publish
-
-You can enable `npm version patch # or minor or major` to automatically update changelog, push commits and version tag to the git server, and publish to npm.
-
-Here is one simple setup.
-1. `npm i -D standard-changelog`. We use [`standard-changelog`](https://github.com/conventional-changelog/conventional-changelog) as a minimum example to support conventional changelog.
-  * Alternatively you can use high level [standard-version](https://github.com/conventional-changelog/standard-version).
-2. Add two commands to `"scripts"` section of package.json.
-```
-"scripts": {
-  // ...
-  "version": "standard-changelog && git add CHANGELOG.md",
-  "postversion": "git push && git push --tags && npm publish"
-},
-```
-3. you can remove `&& npm publish` if your project is private
-
-For more information, go to https://aurelia.io/docs/cli/cli-bundler
-
-## Run dev app
-
-Run `au run`, then open `http://localhost:9000`
-
-To open browser automatically, do `au run --open`.
-
-To change dev server port, do `au run --port 8888`.
-
-To change dev server host, do `au run --host 127.0.0.1`
-
-To install new npm packages automatically, do `au run --auto-install`
-
-**PS:** You could mix all the flags as well, `au run --host 127.0.0.1 --port 7070 --open`
-
-
-## Unit tests
-
-Run `au test` (or `au jest`).
-
-To run in watch mode, `au test --watch` or `au jest --watch`.
+Check the [table of content](./doc/toc.md).
