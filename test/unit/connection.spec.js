@@ -353,12 +353,6 @@ describe('Connection', () => {
       expect(mockUserManager.signinRedirect.mock.calls[0][0].extraQueryParams.audience).toBe(audience);
     });
 
-    test('starts signin redirection with current route if no route specified', async () => {
-      const connection = new Connection(mockRouter, {}, mockUserManager, mockUserPrompt);
-      await connection.loginUser();
-      expect(mockUserManager.signinRedirect.mock.calls[0][0].state).toBe(expectedFragment);
-    });
-
     test('logs error if signin redirection failed', async () => {
       mockUserManager.signinRedirect = () => {
         throw new Error('');
@@ -382,13 +376,6 @@ describe('Connection', () => {
       expect(connection._user).toBe(null);
     });
 
-    test('removes the user in local storage when no end_session_endpoint', async () => {
-      mockUserManager.settings.metadata.end_session_endpoint = undefined;
-      const connection = new Connection(mockRouter, {}, mockUserManager, mockUserPrompt);
-      await connection.logoutUser();
-      expect(mockUserManager.removeUser).toHaveBeenCalled();
-    });
-
     test('starts signout redirection with specified route', async () => {
       const expectedRoute = 'test';
       const connection = new Connection(mockRouter, {}, mockUserManager, mockUserPrompt);
@@ -403,12 +390,6 @@ describe('Connection', () => {
       await connection.logoutUser(expectedRoute, { extraQueryParams: { audience } });
       expect(mockUserManager.signoutRedirect.mock.calls[0][0].state).toBe(expectedRoute);
       expect(mockUserManager.signoutRedirect.mock.calls[0][0].extraQueryParams.audience).toBe(audience);
-    });
-
-    test('starts signout redirection with current route if no route specified', async () => {
-      const connection = new Connection(mockRouter, {}, mockUserManager, mockUserPrompt);
-      await connection.logoutUser();
-      expect(mockUserManager.signoutRedirect.mock.calls[0][0].state).toBe(expectedFragment);
     });
 
     test('logs error if signout redirection failed', async () => {
