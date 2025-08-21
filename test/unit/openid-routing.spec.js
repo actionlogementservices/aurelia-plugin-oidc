@@ -18,7 +18,7 @@ const mockUserManager = {
 const mockUserManagerWithState = {
   signinRedirectCallback: jest.fn().mockResolvedValue({ state: expectedRouteFromState }),
   signinSilentCallback: jest.fn().mockResolvedValue({ state: expectedRouteFromState }),
-  signoutRedirectCallback: jest.fn().mockResolvedValue({ state: expectedRouteFromState })
+  signoutRedirectCallback: jest.fn().mockResolvedValue({ userState: expectedRouteFromState })
 };
 const mockPluginConfiguration = { redirectsOnClaim: () => expectedRouteFromClaim };
 
