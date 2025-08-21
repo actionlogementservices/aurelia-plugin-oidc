@@ -70,7 +70,7 @@ export class OpenidRouting {
         redirectRoute = user.state;
         Logger.debug(`OpenidRouting.signInStrategy: selecting redirect route from state: ${redirectRoute}.`);
       }
-      Logger.info(`OpenidRouting.signInStrategy: finished signin redirection to ${redirectRoute}.`);
+      Logger.info(`OpenidRouting.signInStrategy: finished signin redirection to '${redirectRoute}'.`);
     };
     const navigationInstruction = () => {
       instruction.config.redirect = redirectRoute;
@@ -99,11 +99,12 @@ export class OpenidRouting {
     let redirectRoute = '';
     const callback = async () => {
       Logger.debug('OpenidRouting.signOutStrategy: finishing signout redirection...');
-      const response = await this._userManager.signoutRedirectCallback();
-      if (response.state) {
-        redirectRoute = response.state;
+      const signoutResponse = await this._userManager.signoutRedirectCallback();
+      if (signoutResponse.userState && typeof signoutResponse.userState === 'string') {
+        redirectRoute = signoutResponse.userState;
+        Logger.debug(`OpenidRouting.signOutStrategy: selecting redirect route from state: ${redirectRoute}.`);
       }
-      Logger.info(`OpenidRouting.signOutStrategy: finished signout redirection to ${redirectRoute}.`);
+      Logger.info(`OpenidRouting.signOutStrategy: finished signout redirection to '${redirectRoute}'.`);
     };
     const navigationInstruction = () => {
       instruction.config.redirect = redirectRoute;
