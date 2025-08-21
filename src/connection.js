@@ -74,10 +74,13 @@ export class Connection {
       this._setUser(this._simulationUser);
       return;
     }
-    const redirectRoute = route || getCurrentRouteInfo(this._router.currentInstruction);
+    const siginOptions = Object.assign({}, options);
+    if (route) siginOptions.state = route;
     try {
-      Logger.info(`Connection.loginUser: starting signin redirection with ${redirectRoute}...`);
-      await this._userManager.signinRedirect({ state: redirectRoute, ...options });
+      Logger.info(
+        `Connection.loginUser: starting signin ${route ? " then redirection to '" + route + "'..." : ''}`
+      );
+      await this._userManager.signinRedirect(siginOptions);
     } catch (error) {
       Logger.error('Connection.loginUser: unable to login', error);
       throw error;
@@ -95,15 +98,13 @@ export class Connection {
       this._setUser(null);
       return;
     }
-    const noEndSessionEndpoint = this._userManager.settings?.metadata?.end_session_endpoint === undefined;
-    if (noEndSessionEndpoint) {
-      await this._userManager.removeUser();
-      return;
-    }
-    const redirectRoute = route || getCurrentRouteInfo(this._router.currentInstruction);
+    const signoutOptions = Object.assign({}, options);
+    if (route) signoutOptions.state = route;
     try {
-      Logger.info(`Connection.logoutUser: starting signout redirection with ${redirectRoute}...`);
-      await this._userManager.signoutRedirect({ state: redirectRoute, ...options });
+      Logger.info(
+        `Connection.logoutUser: starting signout ${route ? " then redirection to '" + route + "'..." : ''}`
+      );
+      await this._userManager.signoutRedirect(signoutOptions);
     } catch (error) {
       Logger.error('Connection.logoutUser: unable to logout', error);
       throw error;
