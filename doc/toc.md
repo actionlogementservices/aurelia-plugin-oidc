@@ -3,6 +3,10 @@
 ## Table of contents
 
 * ![category:public](https://img.shields.io/badge/category-public-FF5000.svg?style=flat-square)
+  * [authenticate-step](src_authenticate-step.md) - _Implements the **router authorize step** that prevents an unauthenticated user from navigating
+to a route requiring authentication (see &#x60;isAuthRequired&#x60;).
+The user is redirected to the &#x60;loginRoute&#x60; when configured, otherwise the login to the OpenID provider
+is started and the user comes back to the requested route once authenticated._
   * [connection](src_connection.md) - _Provides an encapsulation of the OpenID Connect user connection._
   * [oauth2-interceptor](src_oauth2-interceptor.md) - _Implements a custom interceptor that sets OAuth2 bearer token and
 obtains a new token when expired.

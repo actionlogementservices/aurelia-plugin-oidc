@@ -4,7 +4,7 @@
 
 
 
-[Source file](..\src\plugin-configuration.js)
+[Source file](../src/plugin-configuration.js)
 
 # Class `PluginConfiguration`
 
@@ -69,9 +69,10 @@ __*return*__ | [PluginConfiguration](src_plugin-configuration.md) | *the plugin 
 
 Name | Type | Description
 --- | --- | ---
-__simulation__ | `boolean` | *Activates the simulation mode where the login/logout is only simulated. You can define a related simulationUser.*
-__simulationUser__ | `SimulatedUser` | *User object that defines the connected user when simulation mode is enable.*
-__userIdClaimSelector__ | `((profile: UserProfile \| {name: string}) => string)` | *Function that defines the profile claim used to represent user identifier.*
+__loginRoute__ | `string` | *Name of the route where the &#x60;AuthenticateStep&#x60; redirects an unauthenticated user navigating to a route requiring authentication.
+When not defined, the login to the OpenID provider is started and the user comes back to the requested route.*
+__authRequiredByDefault__ | `boolean` | *Defines whether the routes without &#x60;settings.authRequired&#x60; require authentication (default &#x60;false&#x60;).*
+__userIdClaimSelector__ | `((profile: UserProfile) => string)` | *Function that defines the profile claim used to represent user identifier.*
 __loginRequiredSelector__ | `((errorResponse: ErrorResponse) => boolean)` | *Function that defines the silent login failure analysis to determine that a complete login is required.*
 __redirectsOnClaim__ | `((profile: UserProfile) => string)` | *Function that defines the redirect route name based on the presence of specific profile claims.*
 __reconnectPrompt__ | `((loginFunction: Function) => void)` | *Function that defines the reconnection prompt that will be displayed when a new connection is required.

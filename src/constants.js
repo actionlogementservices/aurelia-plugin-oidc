@@ -36,7 +36,7 @@ export const defaultReconnectPrompt = loginFunction => {
 /**
  * Defines the default claim that represents the user identifier.
  * The default claim is "name".
- * @param {UserProfile | {name: string}} profile the user profile containing claims
+ * @param {UserProfile} profile the user profile containing claims
  * @returns {string} the user identifier
  */
 export const defaultUserIdClaimSelector = profile => profile.name;
@@ -47,16 +47,6 @@ export const defaultUserIdClaimSelector = profile => profile.name;
  * @returns {boolean} the condition on error response object to trigger the complete login
  */
 export const defaultLoginRequiredSelector = errorReponse => errorReponse.error === 'interaction_required';
-
-/**
- * Defines the default user in simulation mode.
- * @type {SimulatedUser}
- */
-export const defaultSimulationUser = {
-  profile: { name: 'Test User' },
-  expired: false,
-  access_token: '0123456789'
-};
 
 /**
  * Defines the default onError callback (do nothing).

@@ -5,7 +5,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable unicorn/prevent-abbreviations */
 import { Connection } from '../../src/connection';
-import { defaultUserIdClaimSelector, defaultSimulationUser } from '../../src/constants';
+import { defaultUserIdClaimSelector } from '../../src/constants';
 
 // mock oidc Logger function
 jest.mock('oidc-client-ts');
@@ -86,25 +86,6 @@ describe('Connection', () => {
       expect(connection._userIdClaimSelector).toBe(expectedClaimSelector);
     });
 
-    test('uses the default simulationUser', () => {
-      const expectedSimulationUser = defaultSimulationUser;
-      const configuration = {
-        simulation: true
-      };
-      const connection = new Connection({}, configuration, mockUserManager, mockUserPrompt);
-      expect(connection._simulationUser).toBe(expectedSimulationUser);
-    });
-
-    test('uses the configured simulationUser', () => {
-      const expectedSimulationUser = expectedUser;
-      const configuration = {
-        simulation: true,
-        simulationUser: expectedUser
-      };
-      const connection = new Connection({}, configuration, mockUserManager, mockUserPrompt);
-      expect(connection._simulationUser).toBe(expectedSimulationUser);
-    });
-
     test('hooks up UserManager user loaded event', () => {
       const connection = new Connection({}, {}, mockUserManager, mockUserPrompt);
       expect(mockUserManager.events.addUserLoaded).toHaveBeenCalled();
@@ -115,11 +96,6 @@ describe('Connection', () => {
       expect(mockUserManager.events.addUserUnloaded).toHaveBeenCalled();
     });
 
-    test('does not hooks up UserManager user events in simulation mode', () => {
-      const connection = new Connection({}, { simulation: true }, mockUserManager, mockUserPrompt);
-      expect(mockUserManager.events.addUserLoaded).not.toHaveBeenCalled();
-      expect(mockUserManager.events.addUserUnloaded).not.toHaveBeenCalled();
-    });
   });
 
   describe('getUser()', () => {
@@ -326,17 +302,6 @@ describe('Connection', () => {
   });
 
   describe('loginUser()', () => {
-    test('sets the simulationUser as user in simulation mode', async () => {
-      const expectedSimulationUser = expectedUser;
-      const configuration = {
-        simulation: true,
-        simulationUser: expectedUser
-      };
-      const connection = new Connection(mockRouter, configuration, mockUserManager, mockUserPrompt);
-      await connection.loginUser();
-      expect(connection._user).toBe(expectedSimulationUser);
-    });
-
     test('starts signin redirection with specified route', async () => {
       const expectedRoute = 'test';
       const connection = new Connection(mockRouter, {}, mockUserManager, mockUserPrompt);
@@ -366,16 +331,6 @@ describe('Connection', () => {
   });
 
   describe('logoutUser()', () => {
-    test('resets the user in simulation mode', async () => {
-      const configuration = {
-        simulation: true,
-        simulationUser: expectedUser
-      };
-      const connection = new Connection(mockRouter, configuration, mockUserManager, mockUserPrompt);
-      await connection.logoutUser();
-      expect(connection._user).toBe(null);
-    });
-
     test('starts signout redirection with specified route', async () => {
       const expectedRoute = 'test';
       const connection = new Connection(mockRouter, {}, mockUserManager, mockUserPrompt);
@@ -405,17 +360,6 @@ describe('Connection', () => {
   });
 
   describe('trySilentLogin()', () => {
-    test('sets the simulationUser as user in simulation mode', async () => {
-      const expectedSimulationUser = expectedUser;
-      const configuration = {
-        simulation: true,
-        simulationUser: expectedUser
-      };
-      const connection = new Connection(mockRouter, configuration, mockUserManager, mockUserPrompt);
-      await connection.trySilentLogin();
-      expect(connection._user).toBe(expectedSimulationUser);
-    });
-
     test('starts silent login redirection with empty route', async () => {
       const expectedRoute = 'test';
       const connection = new Connection(mockRouter, {}, mockUserManager, mockUserPrompt);

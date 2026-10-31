@@ -3,12 +3,7 @@ import { inject, computedFrom } from 'aurelia-framework';
 import { Router } from 'aurelia-router';
 import { UserManager, Logger } from 'oidc-client-ts';
 
-import {
-  getCurrentRouteInfo,
-  defaultUserIdClaimSelector,
-  defaultSimulationUser,
-  defaultLoginRequiredSelector
-} from './constants';
+import { getCurrentRouteInfo, defaultUserIdClaimSelector, defaultLoginRequiredSelector } from './constants';
 import { UserPrompt } from './user-prompt';
 import { PluginConfiguration } from './plugin-configuration';
 
@@ -35,10 +30,8 @@ export class Connection {
     this._user = null;
     this._router = router;
     this._userManager = userManager;
-    this.simulation = configuration.simulation === true;
-    this._simulationUser = configuration.simulationUser || defaultSimulationUser;
     this._extraQueryParameters = configuration?.userManagerSettings?.extraQueryParams;
-    if (!this.simulation) this.observeUser(user => this._setUser(user));
+    this.observeUser(user => this._setUser(user));
     this._reconnectPrompt = userPrompt.reconnectPrompt;
     this._userIdClaimSelector = configuration.userIdClaimSelector || defaultUserIdClaimSelector;
     this._loginRequiredSelector = configuration.loginRequiredSelector || defaultLoginRequiredSelector;
@@ -70,10 +63,6 @@ export class Connection {
    * @returns {Promise<void>}
    */
   async loginUser(route, options = {}) {
-    if (this.simulation) {
-      this._setUser(this._simulationUser);
-      return;
-    }
     const siginOptions = Object.assign({}, options);
     if (route) siginOptions.state = route;
     try {
@@ -94,10 +83,6 @@ export class Connection {
    * @returns {Promise<void>}
    */
   async logoutUser(route, options = {}) {
-    if (this.simulation) {
-      this._setUser(null);
-      return;
-    }
     const signoutOptions = Object.assign({}, options);
     if (route) signoutOptions.state = route;
     try {
@@ -117,10 +102,6 @@ export class Connection {
    * @returns {Promise<void>}
    */
   async trySilentLogin(route) {
-    if (this.simulation) {
-      this._setUser(this._simulationUser);
-      return;
-    }
     const redirectRoute = route || getCurrentRouteInfo(this._router.currentInstruction);
     try {
       this._inProgress = true;
@@ -151,7 +132,7 @@ export class Connection {
 
   /**
    * Sets the connected user entity.
-   * @param {User | SimulatedUser} user the OpenID Connect user
+   * @param {User} user the OpenID Connect user
    */
   _setUser(user) {
     this._user = user;
@@ -218,7 +199,7 @@ export class Connection {
 
   /**
    * The profile of the user. It contains the claims provided by the identity provider.
-   * @type {UserProfile | {name: string}}
+   * @type {UserProfile}
    */
   @computedFrom('_user')
   get profile() {

@@ -9,7 +9,7 @@ UserManager.mockImplementation(conf => ({
   passedConfiguration: conf
 }));
 
-const config = { simulation: true, userManagerSettings: { authority: 'test' } };
+const config = { userManagerSettings: { authority: 'test' } };
 const mockAurelia = { container: { registerInstance: jest.fn(() => {}) } };
 const configurationCallback = jest.fn(() => config);
 

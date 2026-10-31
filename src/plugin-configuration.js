@@ -53,20 +53,21 @@ export class PluginConfiguration {
   }
 
   /**
-   * Activates the simulation mode where the login/logout is only simulated. You can define a related simulationUser.
-   * @type {boolean | undefined}
+   * Name of the route where the `AuthenticateStep` redirects an unauthenticated user navigating to a route requiring authentication.
+   * When not defined, the login to the OpenID provider is started and the user comes back to the requested route.
+   * @type {string | undefined}
    */
-  simulation;
+  loginRoute;
 
   /**
-   * User object that defines the connected user when simulation mode is enable.
-   * @type {SimulatedUser | undefined}
+   * Defines whether the routes without `settings.authRequired` require authentication (default `false`).
+   * @type {boolean | undefined}
    */
-  simulationUser;
+  authRequiredByDefault;
 
   /**
    * Function that defines the profile claim used to represent user identifier.
-   * @type {((profile: UserProfile | {name: string}) => string)}
+   * @type {((profile: UserProfile) => string)}
    */
   userIdClaimSelector;
 

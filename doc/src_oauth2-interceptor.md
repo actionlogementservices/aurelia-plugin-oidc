@@ -4,7 +4,7 @@
 
 
 
-[Source file](..\src\oauth2-interceptor.js)
+[Source file](../src/oauth2-interceptor.js)
 
 # Class `Oauth2Interceptor`
 
