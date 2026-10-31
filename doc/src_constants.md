@@ -4,7 +4,7 @@
 
 Defines the Aurelia plugin constants.
 
-[Source file](..\src\constants.js)
+[Source file](../src/constants.js)
 
 ## Constants
 
@@ -101,24 +101,6 @@ __*return*__ | `boolean` | *the condition on error response object to trigger th
 
 ```javascript
 errorReponse => errorReponse.error === 'interaction_required'
-```
-
----
-
-### `defaultSimulationUser`
-
-![modifier: public](images/badges/modifier-public.png) ![modifier: static](images/badges/modifier-static.png)
-
-Defines the default user in simulation mode.
-
-#### Value
-
-```javascript
-{
-  profile: { name: 'Test User' },
-  expired: false,
-  access_token: '0123456789'
-}
 ```
 
 ---

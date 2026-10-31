@@ -1,6 +1,6 @@
 {
   "name": "@actionlogementservices/aurelia-plugin-oidc",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "An aurelia plugin repository that provides open-id integration.",
   "keywords": [
     "aurelia",
@@ -31,7 +31,9 @@
     "update:browserslist": "browserslist --update-db",
     "upgrade": "npx npm-upgrade",
     "preversion": "au test",
-    "watch": "au build-plugin --watch"
+    "watch": "au build-plugin --watch",
+    "bump": "release-it --no-git --no-github --npm.publish=false",
+    "publish:local": "npx yalc publish --push"
   },
   "browserslist": [
     ">= 0.2% in FR, last 5 versions, not dead, not Firefox 12"

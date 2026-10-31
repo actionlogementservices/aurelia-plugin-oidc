@@ -4,7 +4,7 @@
 
 
 
-[Source file](..\src\user-prompt.js)
+[Source file](../src/user-prompt.js)
 
 # Class `UserPrompt`
 

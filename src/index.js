@@ -28,3 +28,4 @@ export { PluginConfiguration } from './plugin-configuration';
 export { Oauth2Interceptor } from './oauth2-interceptor';
 export { OpenidRouting } from './openid-routing';
 export { Connection } from './connection';
+export { AuthenticateStep, isAuthRequired } from './authenticate-step';

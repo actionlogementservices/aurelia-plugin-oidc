@@ -4,7 +4,7 @@
 
 
 
-[Source file](..\src\openid-routing.js)
+[Source file](../src/openid-routing.js)
 
 # Class `OpenidRouting`
 

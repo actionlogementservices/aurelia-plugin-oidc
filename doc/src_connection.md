@@ -4,7 +4,7 @@
 
 
 
-[Source file](..\src\connection.js)
+[Source file](../src/connection.js)
 
 # Class `Connection`
 

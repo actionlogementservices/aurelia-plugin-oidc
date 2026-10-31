@@ -23,6 +23,12 @@ The plugin is fully [documented](./doc/toc.md) and fully tested.
 
 - After the successful login, the user is redirected to his original page.
 
+## Migration to v2
+
+- The **simulation mode** has been removed: the __simulation__ and __simulationUser__ configuration properties no longer exist and the `Connection` class no longer has a `simulation` property. Use a real OpenID provider (or mock the `Connection` class in your tests).
+
+- The new `AuthenticateStep` replaces the authenticate steps implemented by the applications: see [Protected routes](#protected-routes).
+
 ## Migration from aurelia-kis-oidc
 
 - The configuration of the plugin must be changed from
@@ -86,7 +92,7 @@ The plugin is fully [documented](./doc/toc.md) and fully tested.
 
 - It is possible to redirect the application on a specific route based on the presence of a **specific claim** in the user profile (See the __redirectsOnClaim__ configuration property).
 
-- There is a **simulation mode** that connect/disconnect the user without interacting with the OpenID provider (See the __simulation__ and __simulationUser__ configuration properties).
+- It implements a **router authorize step** that protects the routes requiring an authenticated user (See [Protected routes](#protected-routes)).
 
 ## Installation
 
@@ -172,6 +178,49 @@ The plugin is fully [documented](./doc/toc.md) and fully tested.
         });
       }
     ```
+
+## Protected routes
+
+Register the `AuthenticateStep` in the application router, and set `settings.authRequired` on the routes:
+
+```javascript
+// in your app.js
+import { AuthenticateStep, OpenidRouting } from '@actionlogementservices/aurelia-plugin-oidc';
+
+configureRouter(configuration, router) {
+  configuration.map([
+    { route: '', name: 'accueil', moduleId: PLATFORM.moduleName('views/accueil') },
+    { route: 'dossier/:id', name: 'dossier', moduleId: PLATFORM.moduleName('views/dossier/dossier-router'), settings: { authRequired: true } },
+    { route: 'faq', name: 'faq', moduleId: PLATFORM.moduleName('views/faq'), settings: { authRequired: false } }
+  ]);
+  configuration.addAuthorizeStep(AuthenticateStep);
+  this.openidRouting.configureRouter(configuration);
+}
+```
+
+When an unauthenticated user navigates to a route requiring authentication, the step:
+
+- redirects the user to the __loginRoute__ when it is configured,
+- otherwise starts the login to the OpenID provider, and the user comes back to the requested route once authenticated.
+
+The `settings.authRequired` value of a route:
+
+| Value       | Meaning |
+| ----------- | ------- |
+| `true`      | the route requires an authenticated user |
+| `false`     | the route is public (faq, contact...) |
+| not defined | the __authRequiredByDefault__ configuration property applies (`false` by default) |
+
+The setting applies to the child routes of the route (child routers). The **deepest route defining the setting wins**: a public route can be nested in a protected route, and the other way round. When the navigation involves several viewports, it requires authentication as soon as one of them requires it.
+
+The `isAuthRequired(navigationInstruction, defaultValue)` function implements this logic: it is exported for the other router steps, like the `AuthorizeStep` of [aurelia-plugin-authorization](https://github.com/actionlogementservices/aurelia-plugin-authorization).
+
+With **aurelia-plugin-authorization**, register the `AuthenticateStep` **before** the `AuthorizeStep`, so that an unauthenticated user is sent to the login rather than to the home route:
+
+```javascript
+configuration.addAuthorizeStep(AuthenticateStep);
+configuration.addAuthorizeStep(AuthorizeStep);
+```
 
 ## User interface
 
@@ -289,6 +338,16 @@ _Example:_
  };
  ```
 
+### `loginRoute`
+
+Name of the route where the `AuthenticateStep` redirects an unauthenticated user navigating to a route requiring authentication. This route is always reachable.
+
+When it is not defined, the step starts the login to the OpenID provider and the user comes back to the requested route once authenticated.
+
+### `authRequiredByDefault`
+
+Defines whether the routes without `settings.authRequired` require authentication (default `false`). Set it to `true` when most of the routes are protected, and mark the public routes with `settings: { authRequired: false }`.
+
 ### `onError`
 
 Sometimes the oicd provider may return an error during the response callback.
@@ -316,42 +375,22 @@ The __redirect_uri__ must be:
 If you specify __post_logout_redirect_uri__ it should be:
 `https://whatever_your_aurelia_app_url/signout-oidc`
 
-### `simulation`
-
-This boolean is for __development__ purpose only. It enables to bypass the OpenID provider dialog and to connect virtually the user.
-
-When you call the `loginUser` method of the [Connection](doc/src_connection.md) class the user is automatically connected as the default following user:
-
-```javascript
-{
-  profile: { name: 'Test User' },
-  expired: false,
-  access_token: '0123456789'
-}
-```
-
-You can define your own user object: see the __simulationUser__ configuration property.
-
-When you call `logoutUser` of the [Connection](doc/src_connection.md) class the user is automatically disconnected.
-
-Of course as the access token is fake you won't be able to call a protected web api.
-
-### `simulationUser`
-
-This object enables you to define a custom connected user that should fit your needs.
-
-_Example:_
-
-```javascript
-simulationUser: {
-      profile: { name: 'J.DOE', emails: ['john.doe@sample.com']},
-      expired: false,
-      access_token: '0123456789'
-    },
-```
-
 ## Project documentation
 
 The project documentation has been generated with jsdoc and the [kis-jsdoc-plugin](https://github.com/kisssdev/kis-jsdoc-plugin).
 
 Check the [table of content](./doc/toc.md).
+
+## Release
+
+The package is published on npm by the `Release` GitHub workflow, with npm trusted publishing (no npm token is stored in GitHub):
+
+1. In your pull request, bump the version with `npm run bump` (updates `package.json` and `package-lock.json` only).
+1. When the pull request is merged on `main`, the workflow runs the tests and **stages** the new version on npm.
+   Prerelease versions (e.g. `2.1.0-0`) are staged with the `next` dist-tag.
+1. The workflow creates a draft GitHub release and an issue assigned to the person who merged, as a reminder to:
+   - approve the staged version in the **Staged Packages** tab of the [npm package](https://www.npmjs.com/package/@actionlogementservices/aurelia-plugin-oidc) (2FA required),
+   - publish the draft GitHub release, which creates the git tag,
+   - close the issue.
+
+If the staged version is rejected, delete the draft release and close the issue.

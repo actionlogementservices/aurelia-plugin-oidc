@@ -4,7 +4,7 @@
 
 
 
-[Source file](..\src\openid-silent-login-detector.js)
+[Source file](../src/openid-silent-login-detector.js)
 
 # Class `OpenidSilentLoginDetector`
 
