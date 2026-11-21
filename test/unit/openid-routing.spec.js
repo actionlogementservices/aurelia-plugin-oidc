@@ -22,6 +22,13 @@ const mockUserManagerWithState = {
 };
 const mockPluginConfiguration = { redirectsOnClaim: () => expectedRouteFromClaim };
 
+/** Instruction of the OpenID Connect callback url, with its query string. */
+const createCallbackInstruction = () => ({
+  config: { redirect: '' },
+  queryString: 'code=abc&state=xyz',
+  queryParams: { code: 'abc', state: 'xyz' }
+});
+
 describe('OpenidRouting', () => {
   describe('configureRouter()', () => {
     let mockInstruction;
@@ -97,6 +104,26 @@ describe('OpenidRouting', () => {
       await openidRouting.signInStrategy(mockInstruction);
       expect(mockInstruction.config.redirect).toBe(expectedRouteFromClaim);
     });
+
+    test('removes the query string of the callback url from the redirection', async () => {
+      const openidRouting = new OpenidRouting({}, mockUserManagerWithState, mockDetector);
+      const instruction = createCallbackInstruction();
+      await openidRouting.signInStrategy(instruction);
+      expect(instruction.config.redirect).toBe(expectedRouteFromState);
+      expect(instruction.queryString).toBe('');
+      expect(instruction.queryParams).toEqual({});
+    });
+
+    test('removes the query string of the callback url when the signin fails', async () => {
+      const onError = jest.fn();
+      const failingUserManager = { signinRedirectCallback: jest.fn().mockRejectedValue(new Error('failed')) };
+      const openidRouting = new OpenidRouting({ onError }, failingUserManager, mockDetector);
+      const instruction = createCallbackInstruction();
+      await expect(openidRouting.signInStrategy(instruction)).rejects.toThrow('failed');
+      expect(onError).toHaveBeenCalled();
+      expect(instruction.config.redirect).toBe('');
+      expect(instruction.queryString).toBe('');
+    });
   });
 
   describe('signOutStrategy()', () => {
@@ -116,6 +143,15 @@ describe('OpenidRouting', () => {
       await openidRouting.signOutStrategy(mockInstruction);
       expect(mockInstruction.config.redirect).toBe(expectedRouteFromState);
     });
+
+    test('removes the query string of the callback url from the redirection', async () => {
+      const openidRouting = new OpenidRouting({}, mockUserManagerWithState, mockDetector);
+      const instruction = createCallbackInstruction();
+      await openidRouting.signOutStrategy(instruction);
+      expect(instruction.config.redirect).toBe(expectedRouteFromState);
+      expect(instruction.queryString).toBe('');
+      expect(instruction.queryParams).toEqual({});
+    });
   });
 
   describe('silentSignInStrategy()', () => {
@@ -128,6 +164,14 @@ describe('OpenidRouting', () => {
       const openidRouting = new OpenidRouting({}, mockUserManager, mockDetector);
       await openidRouting.silentSignInStrategy(mockInstruction);
       expect(mockInstruction.config.redirect).toBe('');
+    });
+
+    test('removes the query string of the callback url from the redirection', async () => {
+      const openidRouting = new OpenidRouting({}, mockUserManager, mockDetector);
+      const instruction = createCallbackInstruction();
+      await openidRouting.silentSignInStrategy(instruction);
+      expect(instruction.queryString).toBe('');
+      expect(instruction.queryParams).toEqual({});
     });
   });
 

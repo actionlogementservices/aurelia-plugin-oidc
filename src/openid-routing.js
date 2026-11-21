@@ -72,9 +72,7 @@ export class OpenidRouting {
       }
       Logger.info(`OpenidRouting.signInStrategy: finished signin redirection to '${redirectRoute}'.`);
     };
-    const navigationInstruction = () => {
-      instruction.config.redirect = redirectRoute;
-    };
+    const navigationInstruction = () => this.redirectTo(instruction, redirectRoute);
     return await this.runAndCompleteNavigationInstruction(callback, navigationInstruction);
   }
 
@@ -87,7 +85,7 @@ export class OpenidRouting {
     Logger.debug('OpenidRouting.silentSignInStrategy: finishing silent signin redirection...');
     await this._userManager.signinSilentCallback();
     Logger.info('OpenidRouting.silentSignInStrategy: finished silent signin redirection.');
-    instruction.config.redirect = '';
+    this.redirectTo(instruction, '');
   }
 
   /**
@@ -106,10 +104,21 @@ export class OpenidRouting {
       }
       Logger.info(`OpenidRouting.signOutStrategy: finished signout redirection to '${redirectRoute}'.`);
     };
-    const navigationInstruction = () => {
-      instruction.config.redirect = redirectRoute;
-    };
+    const navigationInstruction = () => this.redirectTo(instruction, redirectRoute);
     return await this.runAndCompleteNavigationInstruction(callback, navigationInstruction);
+  }
+
+  /**
+   * Redirects the navigation instruction to the specified route.
+   * The query string of the OpenID Connect callback url (code, state, session_state...) is removed:
+   * the aurelia router would otherwise append it to the redirect url.
+   * @param {NavigationInstruction} instruction the aurelia router instruction
+   * @param {string} route the redirect route
+   */
+  redirectTo(instruction, route) {
+    instruction.queryString = '';
+    instruction.queryParams = {};
+    instruction.config.redirect = route;
   }
 
   /**
